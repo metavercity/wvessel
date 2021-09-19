@@ -38,7 +38,7 @@ To achieve that, you could put these lines in `~/bin/vessel`:
 
 ```bash
 #!/bin/bash
-wv="wvessel"; while ! test -e "$wv" && test "$PWD" != "/"; do cd ..; done; if test -x "$wv"; then echo ./$wv $*; fi
+wv="wvessel"; while ! test -e "$wv" && test "$PWD" != "/"; do cd ..; done; if test -x "$wv"; then ./$wv $*; fi
 ```
 Notice that if `wvessel` is not found in the current folder or any of the parent folders, the above script does nothing.
 
