@@ -1,0 +1,157 @@
+#!/bin/bash
+
+vessel_version_file=".vessel.release"
+vessel_releases_dir=~/".vessel.releases.cache"
+
+vessel_release_platform="linux64"
+
+vessel_releases_url="https://api.github.com/repos/dfinity/vessel/releases"
+vessel_releases_download_url="https://github.com/dfinity/vessel/releases/download"
+
+connect_timeout=10
+
+function vessel_latest_release_tag() {
+	curl --silent --connect-timeout $connect_timeout "$vessel_releases_url/latest" | grep -Po '"tag_name": "\K.*?(?=")'
+}
+
+function vessel_latest_releases_taglist() {
+	curl --silent --connect-timeout $connect_timeout "$vessel_releases_url" | grep -Po '"tag_name": "\K.*?(?=")'
+}
+
+function is_valid_vessel_release_tag() {
+	tag="$1"
+	test -n "$(echo "$tag" | grep -P -o '^v\d+\.\d+\.\d+(-[a-z]\w*)?$')"
+}
+
+function release_binary_path() {
+	tag="$1"
+	echo "$vessel_releases_dir/vessel-${vessel_release_platform}_$tag"
+}
+
+function download_vessel_release() {
+	vessel_release_version="$1"
+        echo " info: downloading vessel release $vessel_release_version" 1>&2
+	vessel_release_download_url="$vessel_releases_download_url/$vessel_release_version/vessel-$vessel_release_platform"
+	vessel_release_binary="$(release_binary_path "$vessel_release_version")"
+	vessel_release_tmp="$vessel_releases_dir/tmp.$RANDOM.deleteme"
+	if curl --silent -L --connect-timeout $connect_timeout "$vessel_release_download_url" -o "$vessel_release_tmp" && \
+		/bin/mv "$vessel_release_tmp" "$vessel_release_binary" 
+	then
+		chmod +x "$vessel_release_binary" && echo " info: downloaded ${vessel_release_binary##*/}" 1>&2
+		return 0
+	else
+		echo "error: download failed" 1>&2
+		/bin/rm -f "$vessel_release_tmp" # cleanup 
+		return 1
+	fi
+}
+
+function latest_local_version() {
+	latest="$(ls -alt "$vessel_releases_dir/vessel-${vessel_release_platform}_v"* | tail -1)"
+	latest="${latest##*_}"
+	echo "$latest"
+}
+
+function used_version() {
+	cat "$vessel_version_file" | grep -v -P '^\s*$' | grep -v -P '^\s*#' | head -1 | awk '{print $1}'
+}
+
+if test "$1" = "--list"
+then
+	shift
+	if test "$#" -ne 0
+	then
+		echo "error: bad usage: --list is to be used along, with no other option or parameter" 1>&2
+		exit 1
+	fi
+	if ! vessel_latest_releases_taglist
+	then
+		echo "error: failed to fetch vessel release tag list" 1>&2
+		exit 1
+	fi
+	exit 0
+elif test "$1" = "--use"
+then
+	shift
+	version="$1"
+	shift
+	if test "$#" -ne 0
+        then
+                echo "error: bad usage: only release tag is expected after --use" 1>&2
+                exit 1
+        fi
+	if ! is_valid_vessel_release_tag "$version"
+	then
+		echo "error: invalid vessel release tag '$version'" 1>&2
+                exit 1
+	fi
+	echo "$version" > "$vessel_version_file"
+	version="$(used_version)"
+	echo " info: vessel release tag to use is $version" 1>&2
+	exit 0
+fi
+
+if ! mkdir -p "$vessel_releases_dir"
+then
+	echo "error: unable to create dir '$vessel_releases_dir'" 1>&2; 
+	exit 1
+fi
+
+/bin/rm -f "$vessel_releases_dir/tmp.*.deleteme" # cleanup
+
+if ! test -d "$vessel_releases_dir" || ! test -r "$vessel_version_file"
+then
+	echo " warn: missing or unreadable file '$vessel_version_file'" 1>&2
+	echo " info: fetching latest vessel release tag..." 1>&2
+	latest_tag="$(vessel_latest_release_tag)"
+	if ! is_valid_vessel_release_tag "$latest_tag"
+	then
+		echo "error: unable to fetch or unable to parse a valid release tag" 1>&2
+		latest_tag="$(latest_local_version)"
+		if test -n "$latest_tag" && is_valid_vessel_release_tag "$latest_tag"
+		then
+			echo " warn: falling back to use cached local latest $latest_tag" 1>&2
+		else
+			exit 1
+		fi
+	else
+		echo " info: latest vessel release tag is $latest_tag" 1>&2
+	fi
+	echo "$latest_tag" > "$vessel_version_file"
+fi
+
+vessel_version="$(used_version)"
+
+if ! is_valid_vessel_release_tag "$vessel_version"
+then
+	echo "error: invalid vessel release tag '$vessel_version' in '$vessel_version_file'" 1>&2
+	exit 2
+fi
+
+vessel_release_binary="$(release_binary_path "$vessel_version")"
+
+if ! test -e "$vessel_release_binary"
+then
+	if ! download_vessel_release "$vessel_version"
+	then
+		exit 3
+	fi
+fi
+
+if ! test -x "$vessel_release_binary"
+then
+	echo "error: unable to use '$vessel_release_binary': unreadable, corrupted or not executable" 1>&2
+	exit 3
+fi
+
+binary_type="$(file "$vessel_release_binary")"
+binary_type="${binary_type#*:}"
+
+if test -z "$(echo "$binary_type" | grep -P -o '^\s*ELF\s+64-bit')"
+then
+	echo "error: unable to use '$vessel_release_binary': wrong file type: $binary_type" 1>&2
+	echo " hint: delete cached file and retry" 1>&2
+	exit 3
+fi
+
+"$vessel_release_binary" $*
