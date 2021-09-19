@@ -23,7 +23,7 @@ Set the tag of the vessel release to use:
 
 Or just edit `.vessel.release` to manually specify the tag.
 
-When the file is missing, the scripts connects to github to lookup the latest vessel release tag and if that fails 
+When the file is missing, the script connects to github to lookup the latest vessel release tag and if that fails 
 it falls back to the latest already downloaded and cached binary.
 
 A cache of tag-binaries is kept in your home directory.
@@ -31,15 +31,16 @@ A cache of tag-binaries is kept in your home directory.
 ## Advanced usage:
 
 If you will be using this tool in different local projects, you may prefer to include a `vessel` executable script 
-in your `PATH`, that will in turn execute the `wvessel` script from your current path, or the first that appears
+in your `PATH`, that will in turn execute the `wvessel` script from your current working directory, or the first that appears
 in a parent folder.
 
-A way to achieve this is putting this in `~/bin/vessel`:
+To achieve that, you could put these lines in `~/bin/vessel`:
 
 ```bash
 #!/bin/bash
 wv="wvessel"; while ! test -e "$wv" && test "$PWD" != "/"; do cd ..; done; if test -x "$wv"; then echo ./$wv $*; fi
 ```
+Notice that if `wvessel` is not found in the current folder or any of the parent folders, the above script does nothing.
 
 Do not forget to set execute permissions with:
 
