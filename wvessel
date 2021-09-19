@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# wvessel - a vessel wrapper script to handle vessel versions per project and easy downloading of latest vessel release
+# See https://github.com/metavercity/wvessel/
+
 vessel_version_file=".vessel.release"
 vessel_releases_dir=~/".vessel.releases.cache"
 
