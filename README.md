@@ -2,7 +2,7 @@
 
 **wvessel** is a script that wraps [vessel](https://github.com/dfinity/vessel), a [motoko](https://sdk.dfinity.org/docs/language-guide/motoko.html) package management tool, to ease the use of different versions per project or just to portably download and use the one that work with your sources.
 
-# How to use
+## How to use
 
 1. Download a copy of the `wvessel` script [from the release page](https://github.com/metavercity/wvessel/releases)
 2. Copy `wvessel` to the root of your vessel-dependent project
@@ -23,32 +23,42 @@ Set the tag of the vessel release to use:
 
 Or just edit `.vessel.release` to manually specify the tag.
 
-When the file is missing, the scripts connects to github to lookup the latest vessel release tag and if that fails it falls back to the latest already downloaded and cached binary.
+When the file is missing, the scripts connects to github to lookup the latest vessel release tag and if that fails 
+it falls back to the latest already downloaded and cached binary.
 
 A cache of tag-binaries is kept in your home directory.
 
-# Advanced usage:
+## Advanced usage:
 
-If you use `wvessel` in different projects, you may prefer to include a `vessel` executable script in your PATH, that search for the `wvessel` script in your current path or parent folders.
+If you will be using this tool in different local projects, you may prefer to include a `vessel` executable script 
+in your `PATH`, that will in turn execute the `wvessel` script from your current path, or the first that appears
+in a parent folder.
 
-For example, put this in `~/bin/vessel` and set execute permission with `chmod +x ~/bin/vessel`:
+A way to achieve this is putting this in `~/bin/vessel`:
 
 ```bash
+#!/bin/bash
 wv="wvessel"; while ! test -e "$wv" && test "$PWD" != "/"; do cd ..; done; if test -x "$wv"; then echo ./$wv $*; fi
 ```
 
-# Todo
+Do not forget to set execute permissions with:
 
-The script has only being tested and know to work on linux.
-The scripts assumes that bash and curl are available.
+```bash
+chmod +x ~/bin/vessel
+```
 
-# Find out more
+## Todo
 
-Vessel is a package management tool for Motoko. See https://github.com/dfinity/vessel 
+* The script has only being tested and know to work on linux.
+* The scripts assumes that `bash` and `curl` are available.
 
-Motoko is a simple language for writing Internet Computer (IC) actors. See https://github.com/dfinity/motoko
+## Find out more
 
-To find out more about DFINITY Internet Computer see https://dfinity.org/
+**Vessel** is a package management tool for Motoko. See https://github.com/dfinity/vessel 
 
-Metavercity is a project still being cooked, more information will be available when the time comes.
+**Motoko** is a simple language for writing Internet Computer (IC) actors. See https://github.com/dfinity/motoko
+
+To find out more about **DFINITY Internet Computer** see https://dfinity.org/
+
+**Metavercity** is a project still being cooked, more information will be available when the time comes.
 
